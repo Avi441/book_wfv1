@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 860" width="600" height="860">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+    <linearGradient id="nvmeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <rect width="600" height="860" fill="url(#bgGrad)"/>
+  
+  <!-- Spine Book Fold Shadow -->
+  <rect x="0" y="0" width="16" height="860" fill="black" opacity="0.08"/>
+  <line x1="16" y1="0" x2="16" y2="860" stroke="#000000" stroke-width="0.75" opacity="0.12"/>
+  
+  <!-- Header Title -->
+  <text x="300" y="70" font-family="sans-serif" font-size="20" font-weight="900" letter-spacing="4" text-anchor="middle" fill="#1e293b">THINK LIKE A</text>
+  <text x="300" y="140" font-family="sans-serif" font-size="68" font-weight="900" letter-spacing="-1" text-anchor="middle" fill="#0f172a">LINUX</text>
+  <text x="300" y="210" font-family="sans-serif" font-size="64" font-weight="900" letter-spacing="-1" text-anchor="middle" fill="#b91c1c">STORAGE</text>
+  <text x="300" y="275" font-family="sans-serif" font-size="56" font-weight="900" letter-spacing="-0.5" text-anchor="middle" fill="#0f172a">ENGINEER</text>
+
+  <!-- Subtitle -->
+  <text x="300" y="318" font-family="sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#334155">
+    From Linux I/O Internals to Filesystems, blk-mq, RAID, NVMe and Storage Debugging
+  </text>
+
+  <!-- Quote Capsule -->
+  <g transform="translate(60, 340)">
+    <rect width="480" height="32" rx="16" fill="#0f172a"/>
+    <text x="240" y="21" font-family="sans-serif" font-size="12" font-style="italic" font-weight="500" text-anchor="middle" fill="#ffffff">
+      “Learn not just how Linux storage works, but why it is designed that way.”
+    </text>
+  </g>
+
+  <!-- 4 Feature Pillars -->
+  <g transform="translate(45, 395)">
+    <!-- Pill 1: Physical Devices -->
+    <g transform="translate(0, 0)">
+      <rect width="118" height="54" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#shadow)"/>
+      <rect x="8" y="12" width="28" height="30" rx="6" fill="#1e293b"/>
+      <text x="22" y="32" font-size="15" text-anchor="middle">💾</text>
+      <text x="44" y="25" font-family="sans-serif" font-size="10" font-weight="800" fill="#0f172a">Physical</text>
+      <text x="44" y="39" font-family="sans-serif" font-size="10" font-weight="800" fill="#0f172a">Devices</text>
+    </g>
+
+    <!-- Pill 2: Kernel Data Path -->
+    <g transform="translate(130, 0)">
+      <rect width="118" height="54" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#shadow)"/>
+      <rect x="8" y="12" width="28" height="30" rx="6" fill="#1d4ed8"/>
+      <text x="22" y="31" font-family="monospace" font-size="9" font-weight="900" fill="#ffffff" text-anchor="middle">VFS</text>
+      <text x="44" y="25" font-family="sans-serif" font-size="10" font-weight="800" fill="#0f172a">Kernel</text>
+      <text x="44" y="39" font-family="sans-serif" font-size="10" font-weight="800" fill="#0f172a">Data Path</text>
+    </g>
+
+    <!-- Pill 3: blk-mq Queues -->
+    <g transform="translate(260, 0)">
+      <rect width="118" height="54" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#shadow)"/>
+      <rect x="8" y="12" width="28" height="30" rx="6" fill="#b91c1c"/>
+      <text x="22" y="31" font-family="monospace" font-size="9" font-weight="900" fill="#ffffff" text-anchor="middle">MQ</text>
+      <text x="44" y="25" font-family="sans-serif" font-size="10" font-weight="800" fill="#0f172a">blk-mq</text>
+      <text x="44" y="39" font-family="sans-serif" font-size="10" font-weight="800" fill="#0f172a">Queues</text>
+    </g>
+
+    <!-- Pill 4: Multipath Fabrics -->
+    <g transform="translate(390, 0)">
+      <rect width="118" height="54" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#shadow)"/>
+      <rect x="8" y="12" width="28" height="30" rx="6" fill="#7e22ce"/>
+      <text x="22" y="31" font-family="monospace" font-size="9" font-weight="900" fill="#ffffff" text-anchor="middle">ANA</text>
+      <text x="44" y="25" font-family="sans-serif" font-size="10" font-weight="800" fill="#0f172a">Multipath</text>
+      <text x="44" y="39" font-family="sans-serif" font-size="10" font-weight="800" fill="#0f172a">Fabrics</text>
+    </g>
+  </g>
+
+  <!-- Center Graphic: Tux with NVMe SSD Graphic -->
+  <g transform="translate(45, 480)">
+    <rect width="510" height="230" rx="14" fill="#0b1322" stroke="#1e293b" stroke-width="2"/>
+    
+    <path d="M 0,50 L 510,50 M 0,115 L 510,115 M 0,180 L 510,180" stroke="#1e293b" stroke-width="1" opacity="0.6"/>
+    <path d="M 120,0 L 120,230 M 255,0 L 255,230 M 390,0 L 390,230" stroke="#1e293b" stroke-width="1" opacity="0.6"/>
+
+    <!-- Tux the Penguin -->
+    
+  <g transform="translate(40, 50) scale(1.4)">
+    <!-- Tux Body Outer -->
+    <ellipse cx="40" cy="50" rx="30" ry="38" fill="#0f172a" />
+    <!-- Tux White Belly -->
+    <ellipse cx="40" cy="55" rx="20" ry="26" fill="#f8fafc" />
+    <!-- Tux Head -->
+    <circle cx="40" cy="24" r="20" fill="#0f172a" />
+    <!-- Tux Eyes -->
+    <ellipse cx="33" cy="20" rx="3.5" ry="5.5" fill="#f8fafc" />
+    <circle cx="34" cy="20" r="2" fill="#0f172a" />
+    <ellipse cx="47" cy="20" rx="3.5" ry="5.5" fill="#f8fafc" />
+    <circle cx="46" cy="20" r="2" fill="#0f172a" />
+    <!-- Tux Beak -->
+    <polygon points="34,26 46,26 40,34" fill="#f59e0b" />
+    <!-- Tux Wings -->
+    <ellipse cx="12" cy="52" rx="6" ry="18" fill="#0f172a" transform="rotate(15 12 52)" />
+    <ellipse cx="68" cy="52" rx="6" ry="18" fill="#0f172a" transform="rotate(-15 68 52)" />
+    <!-- Tux Feet -->
+    <ellipse cx="28" cy="85" rx="12" ry="5" fill="#f59e0b" />
+    <ellipse cx="52" cy="85" rx="12" ry="5" fill="#f59e0b" />
+  </g>
+
+    <!-- NVMe M.2 SSD Card Visual -->
+    <g transform="translate(190, 45)">
+      <rect width="280" height="135" rx="8" fill="url(#nvmeGrad)" stroke="#ef4444" stroke-width="1.8"/>
+      
+      <!-- Gold PCIe Pins -->
+      <g transform="translate(15, 122)">
+        <rect x="0" y="0" width="8" height="10" fill="#fbbf24"/>
+        <rect x="12" y="0" width="8" height="10" fill="#fbbf24"/>
+        <rect x="24" y="0" width="8" height="10" fill="#fbbf24"/>
+        <rect x="36" y="0" width="8" height="10" fill="#fbbf24"/>
+        <rect x="48" y="0" width="8" height="10" fill="#fbbf24"/>
+        <rect x="68" y="0" width="8" height="10" fill="#fbbf24"/>
+        <rect x="80" y="0" width="8" height="10" fill="#fbbf24"/>
+        <rect x="92" y="0" width="8" height="10" fill="#fbbf24"/>
+      </g>
+
+      <!-- Controller Chip -->
+      <rect x="25" y="20" width="70" height="70" rx="4" fill="#020617" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="60" y="52" font-family="monospace" font-size="10" font-weight="900" fill="#38bdf8" text-anchor="middle">NVMe</text>
+      <text x="60" y="66" font-family="monospace" font-size="9" fill="#94a3b8" text-anchor="middle">ASIC</text>
+
+      <!-- NAND Chips -->
+      <rect x="110" y="20" width="70" height="85" rx="4" fill="#020617" stroke="#64748b" stroke-width="1"/>
+      <text x="145" y="66" font-family="monospace" font-size="9" font-weight="bold" fill="#cbd5e1" text-anchor="middle">NAND 1</text>
+      <rect x="190" y="20" width="70" height="85" rx="4" fill="#020617" stroke="#64748b" stroke-width="1"/>
+      <text x="225" y="66" font-family="monospace" font-size="9" font-weight="bold" fill="#cbd5e1" text-anchor="middle">NAND 2</text>
+
+      <!-- Spec Text -->
+      <text x="190" y="122" font-family="monospace" font-size="9" font-weight="bold" fill="#ef4444" text-anchor="middle">PCIe 4.0 x4 • blk-mq • NVMe-oF</text>
+    </g>
+  </g>
+
+  <!-- Bottom Author Banner -->
+  <g transform="translate(0, 780)">
+    <rect width="600" height="80" fill="#090d16"/>
+    <line x1="0" y1="0" x2="600" y2="0" stroke="#b91c1c" stroke-width="4"/>
+    <text x="300" y="48" font-family="sans-serif" font-size="24" font-weight="900" letter-spacing="8" fill="#ffffff" text-anchor="middle">
+      AVINASH PAL
+    </text>
+  </g>
+</svg>

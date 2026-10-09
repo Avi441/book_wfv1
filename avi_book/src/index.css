@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --brand-navy: #0f172a;
+  --brand-blue: #2563eb;
+  --brand-red: #b91c1c;
+  --brand-surface: #f8fafc;
+  --brand-border: rgba(15, 23, 42, 0.08);
+  --brand-text: #0f172a;
+  --brand-muted: #475569;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    color: var(--brand-text);
+    font-family: Inter, "Segoe UI", sans-serif;
+  }
+
+  a {
+    text-decoration: none;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  /* Prevent automatic iOS Safari zoom-in on input focus */
+  input, textarea, select {
+    font-size: 16px;
+  }
+  @media (min-width: 640px) {
+    input, textarea, select {
+      font-size: inherit;
+    }
+  }
+}
+
+/* Safe area padding utilities */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+}
+.pt-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0.5rem));
+}
+

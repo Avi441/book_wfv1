@@ -153,7 +153,7 @@ export function FeaturedBookSection({
                 </button>
 
                 <div className="inline-flex items-center gap-2 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-600">
-                  <span className="line-through text-slate-400">{formatPrice(featuredPrice.originalPrice, currency)}</span>
+                  <span className="line-through text-red-800 font-semibold decoration-red-800">{formatPrice(featuredPrice.originalPrice, currency)}</span>
                   <span className="font-bold text-slate-900">{formatPrice(featuredPrice.effectivePrice, currency)}</span>
                 </div>
 

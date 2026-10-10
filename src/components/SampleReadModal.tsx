@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { PDFDocument } from 'pdf-lib';
 import {
   X,
@@ -17,10 +17,17 @@ import {
   ShieldCheck,
   FileText,
   ExternalLink,
+  Bookmark,
+  RotateCcw,
 } from 'lucide-react';
 import { Book } from '../types';
 import { getPreviewPageLimit, hasPurchasedBook } from '../utils/purchaseEntitlements';
 import { CurrencyCode, ExchangeRates, getDisplayPrice } from '../utils/pricing';
+import {
+  getSavedReadingPosition,
+  saveReadingPosition,
+  SavedReadingPosition,
+} from '../utils/readingProgress';
 
 interface SampleReadModalProps {
   book: Book | null;
@@ -59,6 +66,83 @@ export function SampleReadModal({ book, currency = 'USD', exchangeRates, onClose
   const [sampleError, setSampleError] = useState<string | null>(null);
   const [actualPdfPageCount, setActualPdfPageCount] = useState<number | null>(null);
   const [isLockedPopupOpen, setIsLockedPopupOpen] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [savedPosition, setSavedPosition] = useState<SavedReadingPosition | null>(null);
+  const [showContinueBanner, setShowContinueBanner] = useState(false);
+  const contentScrollRef = useRef<HTMLDivElement>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Track and load saved reading progress when specific book is opened
+  useEffect(() => {
+    if (!book) {
+      setSavedPosition(null);
+      setShowContinueBanner(false);
+      return;
+    }
+
+    const saved = getSavedReadingPosition(book.id);
+    if (saved && (saved.scrollTop > 40 || saved.chapterIndex > 0 || saved.scrollProgress > 3)) {
+      setSavedPosition(saved);
+      setShowContinueBanner(true);
+    } else {
+      setSavedPosition(null);
+      setShowContinueBanner(false);
+    }
+  }, [book?.id]);
+
+  useEffect(() => {
+    setScrollProgress(0);
+    if (contentScrollRef.current) {
+      contentScrollRef.current.scrollTop = 0;
+    }
+  }, [activeChapterIndex, activeMode]);
+
+  const handleResumeReading = () => {
+    if (!savedPosition) return;
+    setActiveMode('reader');
+    if (savedPosition.chapterIndex !== activeChapterIndex) {
+      setActiveChapterIndex(savedPosition.chapterIndex);
+    }
+    setScrollProgress(savedPosition.scrollProgress);
+    setShowContinueBanner(false);
+
+    // Smooth scroll to the saved scroll position
+    setTimeout(() => {
+      if (contentScrollRef.current) {
+        contentScrollRef.current.scrollTo({
+          top: savedPosition.scrollTop,
+          behavior: 'smooth',
+        });
+      }
+    }, 120);
+  };
+
+  const handleDismissResume = () => {
+    setShowContinueBanner(false);
+  };
+
+  const handleContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const maxScroll = scrollHeight - clientHeight;
+    const pct = maxScroll <= 0 ? 100 : Math.min(100, Math.max(0, (scrollTop / maxScroll) * 100));
+    setScrollProgress(pct);
+
+    // Debounced tracking of last scroll position to local state
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      if (book && (scrollTop > 30 || pct > 2)) {
+        const data: SavedReadingPosition = {
+          bookId: book.id,
+          chapterIndex: activeChapterIndex,
+          scrollTop,
+          scrollProgress: pct,
+          timestamp: Date.now(),
+        };
+        saveReadingPosition(data);
+        setSavedPosition(data);
+      }
+    }, 350);
+  };
 
   const rawPdfUrl = useMemo(() => {
     if (!book) return '';
@@ -198,6 +282,7 @@ export function SampleReadModal({ book, currency = 'USD', exchangeRates, onClose
   const handleLockedChapterClick = (index: number) => {
     if (isPurchased || index === 0) {
       setActiveChapterIndex(index);
+      setShowContinueBanner(false);
       return;
     }
     setIsLockedPopupOpen(true);
@@ -255,6 +340,21 @@ export function SampleReadModal({ book, currency = 'USD', exchangeRates, onClose
         onClick={(e) => e.stopPropagation()}
         className={`relative w-full max-w-5xl h-[94vh] max-h-[900px] flex flex-col rounded-2xl shadow-2xl border overflow-hidden ${themeStyles[readerTheme]}`}
       >
+        {/* Top Scroll Progress Bar */}
+        <div
+          className="w-full h-1 bg-slate-200/50 dark:bg-slate-800/80 shrink-0 z-30 relative overflow-hidden"
+          role="progressbar"
+          aria-valuenow={Math.round(scrollProgress)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Reading preview progress"
+        >
+          <div
+            className="h-full bg-gradient-to-r from-blue-600 via-sky-500 to-blue-600 transition-all duration-150 ease-out"
+            style={{ width: `${scrollProgress}%` }}
+          />
+        </div>
+
         {/* Top Sticky Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 border-b border-inherit bg-inherit/95 backdrop-blur-sm z-20 shrink-0">
           {/* Left Title & Badge */}
@@ -268,10 +368,24 @@ export function SampleReadModal({ book, currency = 'USD', exchangeRates, onClose
               />
             )}
             <div className="min-w-0 text-left">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500 text-slate-950 shrink-0">
                   {isPurchased ? 'FULL ACCESS' : 'FREE 20% PDF SAMPLE'}
                 </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/80 dark:text-sky-300 border border-blue-200 dark:border-blue-800 shrink-0">
+                  {Math.round(scrollProgress)}% read
+                </span>
+                {savedPosition && (
+                  <button
+                    type="button"
+                    onClick={handleResumeReading}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-900/60 dark:hover:bg-blue-800 dark:text-sky-300 border border-blue-300 dark:border-blue-700 transition-colors cursor-pointer active:scale-95 shadow-2xs"
+                    title={`Continue reading from Chapter ${savedPosition.chapterIndex + 1} (${Math.round(savedPosition.scrollProgress)}%)`}
+                  >
+                    <RotateCcw className="w-3 h-3 text-blue-600 dark:text-sky-400" />
+                    <span>Continue reading ({Math.round(savedPosition.scrollProgress)}%)</span>
+                  </button>
+                )}
                 <span className="text-[11px] font-mono opacity-70 hidden sm:inline truncate">
                   {isPurchased ? `All ${totalAvailablePages} pages unlocked` : `Pages 1–${samplePagesCount} of ${totalAvailablePages}`}
                 </span>
@@ -286,8 +400,8 @@ export function SampleReadModal({ book, currency = 'USD', exchangeRates, onClose
                     : 'border-slate-200 bg-slate-100 text-slate-700'
                 }`}
               >
-                <span className="uppercase tracking-[0.15em] opacity-70">Price</span>
-                <span className="line-through opacity-60">{originalPrice}</span>
+                <span className="uppercase tracking-[0.15em] text-red-900 dark:text-red-300 font-bold">Price</span>
+                <span className="line-through text-red-800 dark:text-red-400 font-semibold decoration-red-800">{originalPrice}</span>
                 <span className="text-sm font-black text-blue-500">{displayPrice}</span>
                 {priceSummary.hasOffer && (
                   <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400">
@@ -380,6 +494,42 @@ export function SampleReadModal({ book, currency = 'USD', exchangeRates, onClose
             </button>
           </div>
         </div>
+
+        {/* Continue Reading Resume Prompt Banner */}
+        {showContinueBanner && savedPosition && (
+          <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0 shadow-sm border-b border-blue-500/40 animate-in slide-in-from-top-1 duration-200">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="p-1 rounded-md bg-white/15 text-white shrink-0">
+                <Bookmark className="w-4 h-4 text-amber-300" />
+              </span>
+              <div className="truncate">
+                <span className="font-bold">Welcome back!</span>
+                <span className="opacity-90 ml-1.5 hidden sm:inline">
+                  You previously read up to Chapter {savedPosition.chapterIndex + 1} ({Math.round(savedPosition.scrollProgress)}% completed).
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleResumeReading}
+                className="px-3.5 py-1.5 bg-white hover:bg-slate-100 active:bg-slate-200 text-blue-900 font-bold rounded-lg transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
+                <span>Continue reading</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleDismissResume}
+                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors opacity-80 hover:opacity-100"
+                title="Dismiss and start from top"
+                aria-label="Dismiss resume prompt"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Notice & Progress Ribbon */}
         <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
@@ -591,7 +741,11 @@ export function SampleReadModal({ book, currency = 'USD', exchangeRates, onClose
             </div>
 
             {/* Main Chapter Content Preview Area */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-7 space-y-6 text-left">
+            <div
+              ref={contentScrollRef}
+              onScroll={handleContentScroll}
+              className="flex-1 overflow-y-auto p-4 sm:p-7 space-y-6 text-left"
+            >
               {book.syllabusVideoUrl && (
                 <section className="space-y-2">
                   <h3 className={`text-sm font-bold ${headingTextStyles[readerTheme]}`}>

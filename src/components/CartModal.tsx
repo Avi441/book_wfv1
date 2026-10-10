@@ -94,7 +94,7 @@ export function CartModal({
                       <div className="min-w-0">
                         <h3 className="font-semibold leading-snug text-slate-900">{book.title}</h3>
                         <div className="mt-1 flex items-center gap-2 text-sm">
-                          <span className="text-slate-400 line-through">{formatPrice(price.originalPrice, currency)}</span>
+                          <span className="text-red-800 font-semibold line-through decoration-red-800">{formatPrice(price.originalPrice, currency)}</span>
                           <span className="font-bold text-slate-900">{formatPrice(price.effectivePrice, currency)}</span>
                         </div>
                       </div>

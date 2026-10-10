@@ -24,10 +24,11 @@ export function Header({
 
   const navItems = [
     { id: 'home', label: 'Home' },
-    { id: 'books', label: 'All Books' },
+    { id: 'books', label: 'Books' },
     { id: 'events', label: 'Events' },
     { id: 'one-to-one', label: '1-to-1 Sessions' },
-    { id: 'interview-notes', label: 'Interview Notes' },
+    { id: 'interview-notes', label: 'Technical Notes' },
+    { id: 'about', label: 'About' },
   ];
 
   const handleNavClick = (id: string) => {

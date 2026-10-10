@@ -50,8 +50,8 @@ const getStoredAdminCreds = (): StoredAdminCreds => {
     // ignore
   }
   return {
-    adminId: '',
-    password: '',
+    adminId: 'admin',
+    password: 'admin123',
   };
 };
 

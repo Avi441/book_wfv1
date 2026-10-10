@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { HeroSection } from './components/HeroSection';
 import { BooksSection } from './components/BooksSection';
+import { AllBooksPage } from './components/AllBooksPage';
 import { ResourceGrid } from './components/ResourceGrid';
 import { FeaturedBookSection } from './components/FeaturedBookSection';
 import { NewsletterSection } from './components/NewsletterSection';
 import { Footer } from './components/Footer';
 import { EventsPage } from './components/EventsPage';
 import { OneToOnePage } from './components/OneToOnePage';
+import { NotesPage } from './components/NotesPage';
+import { AboutPage } from './components/AboutPage';
 import { AdminPanel } from './components/AdminPanel';
 import { BookDetailModal } from './components/BookDetailModal';
 import { PdfNotesModal } from './components/PdfNotesModal';
@@ -19,7 +22,8 @@ import { NoteDetailModal } from './components/NoteDetailModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { CartModal } from './components/CartModal';
 import { useSiteData } from './context/useSiteData';
-import { Book } from './types';
+import { Book, InterviewNote, TechnicalNote } from './types';
+import { INTERVIEW_NOTES, TECHNICAL_NOTES } from './data/siteData';
 import { Check } from 'lucide-react';
 import { markBookPurchased } from './utils/purchaseEntitlements';
 import { CurrencyCode, DEFAULT_CURRENCY, ExchangeRates } from './utils/pricing';
@@ -46,11 +50,7 @@ export default function App() {
   const [readingPdfBook, setReadingPdfBook] = useState<Book | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
-  const [activeNote, setActiveNote] = useState<{
-    title: string;
-    category?: string;
-    readTime?: string;
-  } | null>(null);
+  const [activeNote, setActiveNote] = useState<(InterviewNote | TechnicalNote) | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY);
   const [exchangeRates, setExchangeRates] = useState<ExchangeRates>({});
@@ -155,18 +155,6 @@ export default function App() {
   const handleSelectTab = (tab: string) => {
     setActiveTab(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    if (tab === 'books') {
-      setTimeout(() => {
-        const el = document.getElementById('books-section');
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      }, 50);
-    } else if (tab === 'interview-notes' || tab === 'technical-notes' || tab === 'real-devices') {
-      setTimeout(() => {
-        const el = document.getElementById('resources-section');
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      }, 50);
-    }
   };
 
   const handleOpenSubscribe = () => {
@@ -276,8 +264,20 @@ export default function App() {
             onResetDefaults={resetToDefaults}
             onViewLiveSite={(targetTab) => handleSelectTab(targetTab || 'home')}
           />
+        ) : activeTab === 'books' ? (
+          /* 1. Dedicated Books Catalog */
+          <AllBooksPage
+            books={books}
+            currency={selectedCurrency}
+            exchangeRates={exchangeRates}
+            onSelectBook={(book) => setSelectedBook(book)}
+            onBuyBook={handleBuyBook}
+            onSampleRead={handleOpenSampleRead}
+            onAddToCart={handleAddToCart}
+            onNavigateHome={() => handleSelectTab('home')}
+          />
         ) : activeTab === 'events' ? (
-          /* 1. Dedicated Events & Workshop Booking Page */
+          /* 2. Dedicated Events & Workshop Booking Page */
           <EventsPage
             events={events}
             onNavigateHome={() => handleSelectTab('home')}
@@ -285,17 +285,32 @@ export default function App() {
             onOpenContact={() => setIsContactOpen(true)}
           />
         ) : activeTab === 'one-to-one' ? (
-          /* 2. Dedicated 1-to-1 Session Booking Page */
+          /* 3. Dedicated 1-to-1 Session Booking Page */
           <OneToOnePage
             sessions={sessions}
             onNavigateHome={() => handleSelectTab('home')}
             onNavigateToEvents={() => handleSelectTab('events')}
             onOpenContact={() => setIsContactOpen(true)}
           />
+        ) : activeTab === 'interview-notes' || activeTab === 'technical-notes' || activeTab === 'notes' ? (
+          /* 4. Dedicated Technical & Interview Notes Knowledge Base */
+          <NotesPage
+            onSelectNote={(note) => setActiveNote(note)}
+            onExploreBooks={() => handleSelectTab('books')}
+            onBookSession={() => handleSelectTab('one-to-one')}
+          />
+        ) : activeTab === 'about' ? (
+          /* 5. Dedicated Author About Page */
+          <AboutPage
+            onExploreBooks={() => handleSelectTab('books')}
+            onBookSession={() => handleSelectTab('one-to-one')}
+            onViewEvents={() => handleSelectTab('events')}
+            onOpenContact={() => setIsContactOpen(true)}
+          />
         ) : (
-          /* 3. Comprehensive Home View */
+          /* 6. Comprehensive Home View */
           <>
-            {/* 3a. Hero Section with 3D Book Shelf */}
+            {/* 6a. Hero Section with 3D Book Shelf */}
             <HeroSection
               books={books}
               onExploreBooks={() => handleSelectTab('books')}
@@ -304,7 +319,7 @@ export default function App() {
               onSampleRead={handleOpenSampleRead}
             />
 
-            {/* 4b. All Books Section */}
+            {/* 6b. All Books Section */}
             <BooksSection
               books={books}
               currency={selectedCurrency}
@@ -316,23 +331,31 @@ export default function App() {
               onUpdateCover={activeTab === 'admin' ? handleUpdateCover : undefined}
             />
 
-            {/* 4c. Resource Grid */}
+            {/* 6c. Resource Grid */}
             <div id="resources-section">
               <ResourceGrid
                 events={events}
                 onNavigateTab={(tab) => handleSelectTab(tab)}
                 onSelectEvent={() => handleSelectTab('events')}
-                onSelectNote={(noteTitle) =>
-                  setActiveNote({
-                    title: noteTitle,
-                    category: 'Linux Kernel Deep Dive',
-                    readTime: '6 min read',
-                  })
-                }
+                onSelectNote={(noteTitle) => {
+                  const found =
+                    INTERVIEW_NOTES.find((n) => n.title.toLowerCase().includes(noteTitle.toLowerCase())) ||
+                    TECHNICAL_NOTES.find((t) => t.title.toLowerCase().includes(noteTitle.toLowerCase()));
+                  if (found) {
+                    setActiveNote(found);
+                  } else {
+                    setActiveNote({
+                      id: 'general-note',
+                      title: noteTitle,
+                      category: 'Kernel Subsystems',
+                      readTime: '6 min read',
+                    });
+                  }
+                }}
               />
             </div>
 
-            {/* 4d. Featured Book Section */}
+            {/* 6d. Featured Book Section */}
             <FeaturedBookSection
               books={books}
               currency={selectedCurrency}
@@ -344,7 +367,7 @@ export default function App() {
               onUpdateCover={activeTab === 'admin' ? handleUpdateCover : undefined}
             />
 
-            {/* 4e. Newsletter Signup */}
+            {/* 6e. Newsletter Signup */}
             <NewsletterSection />
           </>
         )}
@@ -415,13 +438,21 @@ export default function App() {
         onClose={() => setIsSearchOpen(false)}
         onSelectBook={(book) => setSelectedBook(book)}
         onSelectEvent={() => handleSelectTab('events')}
-        onSelectNote={(noteTitle) =>
-          setActiveNote({
-            title: noteTitle,
-            category: 'Linux Kernel Deep Dive',
-            readTime: '6 min read',
-          })
-        }
+        onSelectNote={(noteTitle) => {
+          const found =
+            INTERVIEW_NOTES.find((n) => n.title.toLowerCase().includes(noteTitle.toLowerCase())) ||
+            TECHNICAL_NOTES.find((t) => t.title.toLowerCase().includes(noteTitle.toLowerCase()));
+          if (found) {
+            setActiveNote(found);
+          } else {
+            setActiveNote({
+              id: 'search-note',
+              title: noteTitle,
+              category: 'Linux Kernel Deep Dive',
+              readTime: '6 min read',
+            });
+          }
+        }}
         books={books}
         events={events}
       />
@@ -434,6 +465,7 @@ export default function App() {
       <NoteDetailModal
         note={activeNote}
         onClose={() => setActiveNote(null)}
+        onExploreBook={() => handleSelectTab('books')}
       />
 
       {/* Mobile App Bottom Navigation Bar */}

@@ -118,7 +118,7 @@ export function BookDetailModal({ book, currency = 'USD', exchangeRates, onClose
             </div>
 
             <div className="pt-2 flex items-center gap-2 text-sm">
-              <span className="text-slate-400 line-through">{formatPrice(priceSummary.originalPrice, currency)}</span>
+              <span className="text-red-800 font-semibold line-through decoration-red-800">{formatPrice(priceSummary.originalPrice, currency)}</span>
               <span className="text-xl font-black text-slate-900">{formatPrice(priceSummary.effectivePrice, currency)}</span>
               {priceSummary.hasOffer && (
                 <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">

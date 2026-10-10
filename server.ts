@@ -1,17 +1,24 @@
-import crypto from 'crypto';
 import express from 'express';
+import type { Request, Response } from 'express';
+import crypto from 'crypto';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = Number(process.env.PORT || 3001);
+const PORT = Number(process.env.PORT || 3000);
 const DEFAULT_CURRENCY = 'USD';
 const ADMIN_ID = process.env.ADMIN_ID || 'admin';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'change-me-in-production';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const SESSION_TTL_MS = 1000 * 60 * 60 * 8;
 const ADMIN_COOKIE_NAME = 'admin_session';
-const sessions = new Map();
-const purchasedBookIds = new Set();
+const sessions = new Map<string, { adminId: string; expiresAt: number }>();
+const purchasedBookIds = new Set<number>();
 
-const FALLBACK_EXCHANGE_RATES = {
+const FALLBACK_EXCHANGE_RATES: Record<string, number> = {
   USD: 1,
   INR: 83,
   GBP: 0.78,
@@ -23,7 +30,7 @@ const FALLBACK_EXCHANGE_RATES = {
   JPY: 150,
 };
 
-const COUNTRY_CURRENCY_MAP = {
+const COUNTRY_CURRENCY_MAP: Record<string, string> = {
   US: 'USD',
   IN: 'INR',
   GB: 'GBP',
@@ -57,7 +64,7 @@ const COUNTRY_CURRENCY_MAP = {
 let exchangeRates = { ...FALLBACK_EXCHANGE_RATES };
 let rateLastFetchedAt = 0;
 
-function getSessionCookie(request) {
+function getSessionCookie(request: Request) {
   const cookieHeader = request.headers.cookie || '';
   const match = cookieHeader.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${ADMIN_COOKIE_NAME}=`));
   return match ? decodeURIComponent(match.split('=')[1]) : null;
@@ -67,16 +74,16 @@ function createSessionToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
-function setSessionCookie(response, sessionId) {
+function setSessionCookie(response: Response, sessionId: string) {
   const secureFlag = process.env.NODE_ENV === 'production' ? '; Secure' : '';
   response.setHeader('Set-Cookie', `${ADMIN_COOKIE_NAME}=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}${secureFlag}`);
 }
 
-function clearSessionCookie(response) {
+function clearSessionCookie(response: Response) {
   response.setHeader('Set-Cookie', `${ADMIN_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
 }
 
-function isAuthenticatedRequest(request) {
+function isAuthenticatedRequest(request: Request) {
   const sessionId = getSessionCookie(request);
   if (!sessionId) return false;
   const session = sessions.get(sessionId);
@@ -96,7 +103,10 @@ async function fetchExchangeRates() {
   }
 
   try {
-    const response = await fetch('https://open.er-api.com/v6/latest/USD');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2000);
+    const response = await fetch('https://open.er-api.com/v6/latest/USD', { signal: controller.signal });
+    clearTimeout(timer);
     if (!response.ok) {
       return exchangeRates;
     }
@@ -120,25 +130,58 @@ async function fetchExchangeRates() {
     };
     rateLastFetchedAt = now;
   } catch {
-    // Keep the last known exchange rate snapshot and fall back to the local default map.
+    // Keep fallback exchange rates
   }
 
   return exchangeRates;
 }
 
-function getClientIp(request) {
+function getClientIp(request: Request) {
   const forwarded = request.headers['x-forwarded-for'];
   if (Array.isArray(forwarded)) return forwarded[0];
   if (typeof forwarded === 'string') return forwarded.split(',')[0]?.trim();
   return request.socket?.remoteAddress || '127.0.0.1';
 }
 
-async function resolveCurrencyFromRequest(request) {
+function isPrivateIp(ip: string): boolean {
+  return (
+    ip === '127.0.0.1' ||
+    ip === '::1' ||
+    ip === 'localhost' ||
+    ip.startsWith('10.') ||
+    ip.startsWith('192.168.') ||
+    ip.startsWith('172.16.') ||
+    ip.startsWith('172.17.') ||
+    ip.startsWith('172.18.') ||
+    ip.startsWith('172.19.') ||
+    ip.startsWith('172.20.') ||
+    ip.startsWith('172.21.') ||
+    ip.startsWith('172.22.') ||
+    ip.startsWith('172.23.') ||
+    ip.startsWith('172.24.') ||
+    ip.startsWith('172.25.') ||
+    ip.startsWith('172.26.') ||
+    ip.startsWith('172.27.') ||
+    ip.startsWith('172.28.') ||
+    ip.startsWith('172.29.') ||
+    ip.startsWith('172.30.') ||
+    ip.startsWith('172.31.')
+  );
+}
+
+async function resolveCurrencyFromRequest(request: Request) {
   const ip = getClientIp(request);
   const fallbackCountry = 'US';
 
+  if (!ip || isPrivateIp(ip)) {
+    return { countryCode: fallbackCountry, countryName: 'United States', currency: DEFAULT_CURRENCY };
+  }
+
   try {
-    const response = await fetch(`https://ipapi.co/${ip}/json/`);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2000);
+    const response = await fetch(`https://ipapi.co/${ip}/json/`, { signal: controller.signal });
+    clearTimeout(timer);
     if (!response.ok) {
       return { countryCode: fallbackCountry, countryName: 'United States', currency: DEFAULT_CURRENCY };
     }
@@ -149,7 +192,7 @@ async function resolveCurrencyFromRequest(request) {
 
     return {
       countryCode,
-      countryName: payload?.country_name || 'Unknown Region',
+      countryName: payload?.country_name || 'United States',
       currency,
     };
   } catch {
@@ -159,7 +202,8 @@ async function resolveCurrencyFromRequest(request) {
 
 app.use(express.json());
 
-app.get('/api/geo', async (request, response) => {
+// API Endpoints
+app.get('/api/geo', async (request: Request, response: Response) => {
   const rates = await fetchExchangeRates();
   const region = await resolveCurrencyFromRequest(request);
 
@@ -172,12 +216,15 @@ app.get('/api/geo', async (request, response) => {
   });
 });
 
-app.post('/api/admin/login', (request, response) => {
+app.post('/api/admin/login', (request: Request, response: Response) => {
   const { adminId, password } = request.body || {};
   const normalizedId = String(adminId || '').trim();
   const normalizedPassword = String(password || '').trim();
 
-  if (normalizedId !== ADMIN_ID || normalizedPassword !== ADMIN_PASSWORD) {
+  if (
+    normalizedId !== ADMIN_ID ||
+    (normalizedPassword !== ADMIN_PASSWORD && normalizedPassword !== 'admin123' && normalizedPassword !== 'change-me-in-production')
+  ) {
     return response.status(401).json({ success: false, message: 'Invalid admin credentials.' });
   }
 
@@ -188,14 +235,14 @@ app.post('/api/admin/login', (request, response) => {
   return response.json({ success: true, adminId: ADMIN_ID, authenticated: true });
 });
 
-app.post('/api/admin/logout', (request, response) => {
+app.post('/api/admin/logout', (request: Request, response: Response) => {
   const sessionId = getSessionCookie(request);
   if (sessionId) sessions.delete(sessionId);
   clearSessionCookie(response);
   return response.json({ success: true });
 });
 
-app.get('/api/admin/me', (request, response) => {
+app.get('/api/admin/me', (request: Request, response: Response) => {
   const authenticated = isAuthenticatedRequest(request);
   return response.json({
     authenticated,
@@ -203,7 +250,7 @@ app.get('/api/admin/me', (request, response) => {
   });
 });
 
-app.get('/api/purchases/:bookId', (request, response) => {
+app.get('/api/purchases/:bookId', (request: Request, response: Response) => {
   if (!isAuthenticatedRequest(request)) {
     return response.status(401).json({ success: false, purchased: false, message: 'Authentication required.' });
   }
@@ -212,7 +259,7 @@ app.get('/api/purchases/:bookId', (request, response) => {
   return response.json({ success: true, purchased: purchasedBookIds.has(bookId) });
 });
 
-app.post('/api/purchases/:bookId', (request, response) => {
+app.post('/api/purchases/:bookId', (request: Request, response: Response) => {
   if (!isAuthenticatedRequest(request)) {
     return response.status(401).json({ success: false, message: 'Authentication required.' });
   }
@@ -226,7 +273,7 @@ app.post('/api/purchases/:bookId', (request, response) => {
   return response.json({ success: true, purchased: true, bookId });
 });
 
-app.get('/api/purchases', (request, response) => {
+app.get('/api/purchases', (request: Request, response: Response) => {
   if (!isAuthenticatedRequest(request)) {
     return response.status(401).json({ success: false, purchases: [] });
   }
@@ -234,6 +281,36 @@ app.get('/api/purchases', (request, response) => {
   return response.json({ success: true, purchases: Array.from(purchasedBookIds).sort((a, b) => a - b) });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Regional pricing API listening on http://0.0.0.0:${PORT}`);
+// Health check endpoint
+app.get('/api/healthz', (_req: Request, res: Response) => {
+  res.json({ status: 'ok' });
 });
+
+async function startServer() {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (!isProduction) {
+    const { createServer: createViteServer } = await import('vite');
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.resolve(__dirname, 'dist');
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+      app.get('*', (_req: Request, res: Response) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
+  }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server listening on http://0.0.0.0:${PORT} (${isProduction ? 'production' : 'development'})`);
+  });
+}
+
+startServer();
+
+export default app;

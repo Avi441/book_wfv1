@@ -1,4 +1,4 @@
-import { Home, BookOpen, Calendar, Users } from 'lucide-react';
+import { Home, BookOpen, Calendar, Users, FileText } from 'lucide-react';
 
 interface MobileBottomNavProps {
   activeTab: string;
@@ -33,6 +33,11 @@ export function MobileBottomNav({
       label: '1-to-1',
       icon: Users,
     },
+    {
+      id: 'interview-notes',
+      label: 'Notes',
+      icon: FileText,
+    },
   ];
 
   return (
@@ -40,7 +45,7 @@ export function MobileBottomNav({
       aria-label="Mobile Navigation"
       className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] px-2 pt-1.5 pb-[max(0.4rem,env(safe-area-inset-bottom,0.4rem))]"
     >
-      <div className="grid grid-cols-4 items-center justify-around max-w-md mx-auto">
+      <div className="grid grid-cols-5 items-center justify-around max-w-md mx-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

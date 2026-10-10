@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   X,
   Download,
@@ -48,6 +48,26 @@ export function PdfNotesModal({ book, onClose, onBuyNow }: PdfNotesModalProps) {
   const [copiedSnippetIndex, setCopiedSnippetIndex] = useState<number | null>(null);
   const [readerTheme, setReaderTheme] = useState<'light' | 'sepia' | 'dark'>('light');
   const [blobPdfUrl, setBlobPdfUrl] = useState<string>('');
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const contentScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setScrollProgress(0);
+    if (contentScrollRef.current) {
+      contentScrollRef.current.scrollTop = 0;
+    }
+  }, [activeChapterIndex, activeTab]);
+
+  const handleContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const maxScroll = scrollHeight - clientHeight;
+    if (maxScroll <= 0) {
+      setScrollProgress(100);
+    } else {
+      const pct = Math.min(100, Math.max(0, (scrollTop / maxScroll) * 100));
+      setScrollProgress(pct);
+    }
+  };
 
   const rawPdfUrl = useMemo(() => {
     if (!book) return '';
@@ -113,6 +133,21 @@ export function PdfNotesModal({ book, onClose, onBuyNow }: PdfNotesModalProps) {
         onClick={(e) => e.stopPropagation()}
         className={`relative w-full max-w-5xl h-[92vh] max-h-[850px] flex flex-col rounded-2xl shadow-2xl border overflow-hidden ${themeStyles[readerTheme]}`}
       >
+        {/* Top Scroll Progress Bar */}
+        <div
+          className="w-full h-1 bg-slate-200/50 dark:bg-slate-800/80 shrink-0 z-30 relative overflow-hidden"
+          role="progressbar"
+          aria-valuenow={Math.round(scrollProgress)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Reading preview progress"
+        >
+          <div
+            className="h-full bg-gradient-to-r from-blue-600 via-sky-500 to-blue-600 transition-all duration-150 ease-out"
+            style={{ width: `${scrollProgress}%` }}
+          />
+        </div>
+
         {/* Top Sticky Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b border-inherit bg-inherit/90 backdrop-blur-sm z-20 shrink-0">
           {/* Left Title & Badge */}
@@ -129,6 +164,9 @@ export function PdfNotesModal({ book, onClose, onBuyNow }: PdfNotesModalProps) {
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-600 text-white shrink-0">
                   PDF NOTES
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/80 dark:text-sky-300 border border-blue-200 dark:border-blue-800 shrink-0">
+                  {Math.round(scrollProgress)}% read
                 </span>
                 <span className="text-[11px] font-mono opacity-60 hidden md:inline truncate">
                   {downloadFileName}
@@ -299,7 +337,11 @@ export function PdfNotesModal({ book, onClose, onBuyNow }: PdfNotesModalProps) {
               </div>
 
               {/* Right Content Area: Detailed Chapter Notes */}
-              <div className="flex-1 overflow-y-auto p-5 sm:p-8 text-left space-y-6">
+              <div
+                ref={contentScrollRef}
+                onScroll={handleContentScroll}
+                className="flex-1 overflow-y-auto p-5 sm:p-8 text-left space-y-6"
+              >
                 {activeChapter ? (
                   <>
                     {/* Chapter Header */}

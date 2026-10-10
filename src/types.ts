@@ -87,11 +87,19 @@ export interface BookingDetails {
 
 export interface InterviewNote {
   id: string;
-  category: 'Kernel' | 'V4L2' | 'General';
+  category: 'Kernel' | 'V4L2' | 'General' | 'Storage' | 'Networking';
   categoryColor: string;
   title: string;
   questionCount: string;
   readTime: string;
+  summary?: string;
+  keyPoints?: string[];
+  questions?: { q: string; a: string }[];
+  codeSnippet?: {
+    title: string;
+    language: string;
+    code: string;
+  };
 }
 
 export interface TechnicalNote {
@@ -99,6 +107,14 @@ export interface TechnicalNote {
   title: string;
   readTime: string;
   category: string;
+  summary?: string;
+  content?: string;
+  keyPoints?: string[];
+  codeSnippet?: {
+    title: string;
+    language: string;
+    code: string;
+  };
 }
 
 export interface RealDeviceExample {

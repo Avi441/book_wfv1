@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-const outDir = "/app/applet/public/covers";
+const outDir = "./public/covers";
 if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
 function getTuxSvg(x, y, scale = 1) {

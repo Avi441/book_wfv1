@@ -153,9 +153,9 @@ export function BooksSection({
 
                 <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
                   <div className="flex flex-col items-start">
-                    <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400">Price</span>
+                    <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-red-900 font-bold">Price</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400 line-through">
+                      <span className="text-xs font-semibold text-red-800 line-through decoration-red-800">
                         {formatPrice(getDisplayPrice(book, currency, exchangeRates).originalPrice, currency)}
                       </span>
                       <span className="text-base font-bold text-slate-900">

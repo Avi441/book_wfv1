@@ -1,13 +1,14 @@
 import { Book, UpcomingEvent, InterviewNote, TechnicalNote, RealDeviceExample } from '../types';
 
 export const AUTHOR_INFO = {
-  name: 'LinuxStack',
-  role: 'Linux Systems, Storage & Kernel Learning',
+  name: 'Avinash Pal',
+  brandName: 'LinuxStack',
+  role: 'Linux Kernel Developer & Systems Author',
   bioShort:
-    "LinuxStack helps engineers move from basic Linux usage to real systems thinking with practical books on storage, drivers, networking, and kernel internals.",
+    "Linux kernel developer and author of the acclaimed Linux Systems Engineering Trilogy. Empowering engineers to move from basic Linux usage to deep kernel, storage, networking, and driver engineering.",
   bioCard:
-    "LinuxStack teaches engineers how Linux works underneath the hood so they can reason about performance, debugging, and system design with confidence.",
-  quote: "Learn not just how Linux works, but how to reason about it in production.",
+    "Avinash Pal teaches systems engineers how the Linux kernel works underneath the hood so they can reason about performance, hardware invariants, and production debugging with clarity.",
+  quote: "Learn not just how Linux works, but why it is designed that way.",
   location: 'Bangalore, India',
   stats: [
     { label: 'Author', icon: 'User' },
@@ -476,46 +477,218 @@ export const INTERVIEW_NOTES: InterviewNote[] = [
     id: 'int-1',
     category: 'Kernel',
     categoryColor: 'bg-blue-600 text-white',
-    title: 'Kernel Driver Internals – Common Questions',
+    title: 'Kernel Driver Internals & Concurrency',
     questionCount: '50+ questions',
     readTime: '8 min read',
+    summary:
+      'Core architectural questions on concurrency primitives, interrupt context restrictions, device driver lifecycle, and container_of offset math.',
+    keyPoints: [
+      'Top-half interrupt handlers (hardirq) cannot sleep; no mutexes, copy_from_user, or kmalloc(..., GFP_KERNEL).',
+      'Bottom-half mechanisms: threaded IRQs, tasklets (deprecated), and workqueues for deferred work.',
+      'Memory barriers (smp_mb, smp_rmb, smp_wmb) enforce CPU instruction order in multi-core environments.',
+      'container_of macro computes enclosing structure pointer via compile-time offsetof subtraction.',
+    ],
+    questions: [
+      {
+        q: 'Why cannot an ISR (Interrupt Service Routine) sleep in Linux?',
+        a: 'ISRs run in interrupt context, which does not have an associated process descriptor (task_struct) or backing user context. If the kernel scheduler were called, it would have no process state to swap out or return to, leading to a kernel panic or deadlock.',
+      },
+      {
+        q: 'When should you use spinlock vs mutex?',
+        a: 'Use spinlocks when holding a lock for very short durations or in atomic/interrupt contexts where sleeping is forbidden. Use mutexes in process context when the critical section involves I/O, page allocations, or sleeping operations.',
+      },
+      {
+        q: 'How does container_of() work under the hood?',
+        a: 'It casts the member pointer to a char pointer, evaluates the offset of the member within the parent struct using the compiler builtin offsetof(), and subtracts that offset from the pointer address.',
+      },
+      {
+        q: 'What is the purpose of the of_match_table in platform drivers?',
+        a: 'It provides a lookup table of Device Tree compatible strings. When the kernel parses the DTB during boot, it matches compatible properties with registered platform drivers and invokes the driver probe() function.',
+      },
+    ],
+    codeSnippet: {
+      title: 'container_of() Macro & Atomic Spinlock Pattern',
+      language: 'c',
+      code: `// Retrieving parent struct from list_head
+struct my_driver_data {
+    int id;
+    spinlock_t lock;
+    struct list_head node;
+};
+
+// Inside worker or callback:
+struct my_driver_data *data = container_of(ptr, struct my_driver_data, node);
+
+unsigned long flags;
+spin_lock_irqsave(&data->lock, flags);
+// Atomic critical section...
+spin_unlock_irqrestore(&data->lock, flags);`,
+    },
   },
   {
     id: 'int-2',
     category: 'V4L2',
     categoryColor: 'bg-emerald-600 text-white',
-    title: 'V4L2 Framework – Interview Questions',
+    title: 'V4L2 Framework & Video Streaming',
     questionCount: '35+ questions',
     readTime: '6 min read',
+    summary:
+      'Essential interview questions on Video4Linux2 (V4L2), Media Controller framework, subdevice negotiation, and videobuf2 queue mechanics.',
+    keyPoints: [
+      'V4L2 separates sensor subdevices (v4l2_subdev) from host interface bridges (v4l2_device) and video node devices (video_device).',
+      'videobuf2 (vb2) manages DMA buffer states: REQBUFS, QUERYBUF, QBUF, STREAMON, DQBUF.',
+      'Memory types: V4L2_MEMORY_MMAP (driver allocated DMA), V4L2_MEMORY_USERPTR (user pointers), V4L2_MEMORY_DMABUF (zero-copy GPU/display sharing).',
+      'Media Controller API represents camera links and pads as a directed graph for pipeline link validation.',
+    ],
+    questions: [
+      {
+        q: 'What is the difference between V4L2_MEMORY_MMAP and V4L2_MEMORY_DMABUF?',
+        a: 'MMAP buffers are allocated by the kernel camera driver (often via CMA) and mapped into user space via mmap(). DMABUF allows zero-copy sharing of buffer file descriptors between distinct drivers (e.g. ISP -> Camera -> GPU -> Display) without CPU copying.',
+      },
+      {
+        q: 'What occurs during the VIDIOC_STREAMON ioctl call?',
+        a: 'The driver activates hardware DMA engines, starts MIPI CSI-2 receivers, and turns on sensor streaming via the subdev s_stream(1) callback.',
+      },
+      {
+        q: 'Why was videobuf2 introduced to replace legacy videobuf?',
+        a: 'videobuf2 decoupled buffer state management from underlying hardware memory allocation (dma-contig, dma-sg, vmalloc), providing thread safety, deterministic lock handling, and native DMABUF support.',
+      },
+    ],
+    codeSnippet: {
+      title: 'videobuf2 Queue Setup Callback',
+      language: 'c',
+      code: `static int my_queue_setup(struct vb2_queue *vq,
+                          unsigned int *nbuffers, unsigned int *nplanes,
+                          unsigned int sizes[], struct device *alloc_devs[])
+{
+    struct my_dev *dev = vb2_get_drv_priv(vq);
+    if (*nplanes)
+        return sizes[0] < dev->fmt_size ? -EINVAL : 0;
+
+    *nplanes = 1;
+    sizes[0] = dev->fmt_size;
+    return 0;
+}`,
+    },
   },
   {
     id: 'int-3',
     category: 'General',
     categoryColor: 'bg-indigo-600 text-white',
-    title: 'Behavioral & System Design',
+    title: 'Behavioral & Linux Systems Architecture',
     questionCount: '20+ questions',
     readTime: '5 min read',
+    summary:
+      'High-level systems architecture questions: debugging production kernel panics, analyzing dmesg crash dumps, and hardware-software isolation.',
+    keyPoints: [
+      'Tracing crash dumps using addr2line and gdb with vmlinux unstripped symbol files.',
+      'Diagnosing memory leaks with kmemleak and page allocation tracing.',
+      'Understanding cache coherency and DMA synchronization (dma_sync_single_for_cpu vs dma_sync_single_for_device).',
+    ],
+    questions: [
+      {
+        q: 'How do you pinpoint the line of code that triggered an Oops from a call trace?',
+        a: 'Take the instruction pointer address or symbol offset (e.g., my_driver_read+0x48/0x120) and pass it to addr2line -e my_driver.ko 0x48 (or run gdb vmlinux and execute disassemble /m my_driver_read).',
+      },
+      {
+        q: 'What causes "DMA transfer completed but data buffer contains stale garbage"?',
+        a: 'Failure to invalidate the CPU data cache before reading DMA memory, or failing to call dma_sync_single_for_cpu(). The CPU reads dirty cache lines instead of the physical DRAM updated by the hardware DMA engine.',
+      },
+    ],
   },
 ];
 
 export const TECHNICAL_NOTES: TechnicalNote[] = [
   {
     id: 'tech-1',
-    title: 'V4L2 Buffer Management',
+    title: 'V4L2 Buffer Management (videobuf2)',
     readTime: '6 min read',
     category: 'Camera Drivers',
+    summary:
+      'In-depth guide to videobuf2 architecture, memory allocators, DMA scatter-gather lists, and buffer lifecycle.',
+    keyPoints: [
+      'Buffer life cycle: Allocated -> Prepared -> Queued in Driver -> Hardware DMA -> Done -> Dequeued to Userspace.',
+      'vb2_ops callbacks: queue_setup, buf_prepare, buf_queue, start_streaming, stop_streaming.',
+      'Zero-copy streaming pipeline architecture across Android Camera HAL3 and DRM display.',
+    ],
+    codeSnippet: {
+      title: 'Minimal videobuf2 vb2_ops Implementation',
+      language: 'c',
+      code: `static const struct vb2_ops my_vb2_ops = {
+    .queue_setup     = my_queue_setup,
+    .buf_prepare     = my_buf_prepare,
+    .buf_queue       = my_buf_queue,
+    .start_streaming = my_start_streaming,
+    .stop_streaming  = my_stop_streaming,
+    .wait_prepare    = vb2_ops_wait_prepare,
+    .wait_finish     = vb2_ops_wait_finish,
+};`,
+    },
   },
   {
     id: 'tech-2',
-    title: 'Device Tree for Camera Drivers',
+    title: 'Device Tree for Embedded Camera Sensors',
     readTime: '8 min read',
     category: 'Device Tree & Hardware',
+    summary:
+      'Authoring Open Firmware Device Tree nodes for I2C image sensors, CSI-2 endpoints, port bindings, and regulators.',
+    keyPoints: [
+      'OF Graph bindings: ports and endpoints connect sensor output pads to SoC CSI-2 receiver input pads.',
+      'Clock & power sequencing: clocks, clock-frequency, reset-gpios, and VDD regulators.',
+      'Remote endpoint phandles describe bidirectional hardware bus links.',
+    ],
+    codeSnippet: {
+      title: 'Camera Sensor Device Tree Node Example',
+      language: 'dts',
+      code: `&i2c1 {
+    status = "okay";
+    camera_sensor: sensor@36 {
+        compatible = "ovti,ov5647";
+        reg = <0x36>;
+        clocks = <&cam_xclk>;
+        clock-names = "xclk";
+        reset-gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;
+        
+        port {
+            sensor_out: endpoint {
+                remote-endpoint = <&csi_in>;
+                data-lanes = <1 2>;
+                clock-lanes = <0>;
+            };
+        };
+    };
+};`,
+    },
   },
   {
     id: 'tech-3',
-    title: 'Linux Kernel Memory Management',
+    title: 'Linux Kernel Memory Management & Folios',
     readTime: '7 min read',
     category: 'Kernel Subsystems',
+    summary:
+      'Modern memory management: SLUB cache allocations, Page Cache Folios in Linux 6.x, direct reclaim, and GFP allocation flags.',
+    keyPoints: [
+      'GFP_KERNEL (can sleep and wait for memory) vs GFP_ATOMIC (high priority, cannot sleep, draws from reserve pools).',
+      'Folios replace legacy struct page pointers for multi-page contiguous memory management.',
+      'Slab caches (kmem_cache_create) optimize allocation latency for fixed-size driver objects.',
+    ],
+    codeSnippet: {
+      title: 'SLUB Custom Cache Creation',
+      language: 'c',
+      code: `static struct kmem_cache *my_cache;
+
+static int __init my_mem_init(void) {
+    my_cache = kmem_cache_create("my_packet_cache",
+                                 sizeof(struct my_packet),
+                                 0, SLAB_HWCACHE_ALIGN, NULL);
+    if (!my_cache) return -ENOMEM;
+    return 0;
+}
+
+static void my_mem_exit(void) {
+    kmem_cache_destroy(my_cache);
+}`,
+    },
   },
 ];
 
